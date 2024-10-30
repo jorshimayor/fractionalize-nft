@@ -5,8 +5,10 @@ import "@klaytn/contracts@1.0.6/KIP/token/KIP7/KIP7.sol";
 import "@klaytn/contracts@1.0.6/KIP/token/KIP17/IKIP17.sol";
 import "@klaytn/contracts@1.0.6/access/Ownable.sol";
 import "@klaytn/contracts@1.0.6/KIP/token/KIP7/extensions/draft-KIP7Permit.sol";
+import "@klaytn/contracts@1.0.6/KIP/token/KIP17/utils/KIP17Holder.sol";
 
-contract Chelsea is KIP7, Ownable, KIP7Permit {
+
+contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
     IKIP17 public collection;
     uint256 public tokenId;
     bool public initialized = false;
