@@ -7,31 +7,27 @@ import "@klaytn/contracts@1.0.6/access/Ownable.sol";
 import "@klaytn/contracts@1.0.6/KIP/token/KIP7/extensions/draft-KIP7Permit.sol";
 import "@klaytn/contracts@1.0.6/KIP/token/KIP17/utils/KIP17Holder.sol";
 
-
 contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
+    error CollectionAlreadyMinted();
+    error NotForSale();
+    error InsufficientFunds();
+    error CannotRedeem();
+    
+    bool public initialized;
+    bool public forSale;
+    bool public canRedeem;
+
     IKIP17 public collection;
     uint256 public tokenId;
-    bool public initialized = false;
-    bool public forSale = false;
     uint256 public salePrice;
-    bool public canRedeem = false;
-
+    
     constructor() KIP7("Chelsea", "CHE") KIP7Permit("Chelsea") {}
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceId == type(IKIP7Permit).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
 
     function initialize(address _collection, uint256 _tokenId) external onlyOwner {
-        require(!initialized, "Already minted");
+        if (!initialized) {
+            revert CollectionAlreadyMinted();
+        }
         collection = IKIP17(_collection);
         collection.safeTransferFrom(msg.sender, address(this), _tokenId);
         tokenId = _tokenId;
@@ -43,20 +39,40 @@ contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
         forSale = true;
     }
 
+
+
     function purchase() external payable {
-        require(forSale, "Not for sale");
-        require(msg.value >= salePrice, "Not enough kaia sent");
+        if (!forSale) {
+            revert NotForSale();
+        }
+        if (msg.value < salePrice) {
+            revert InsufficientFunds();
+        }
         collection.transferFrom(address(this), msg.sender, tokenId);
         forSale = false;
         canRedeem = true;
     }
 
     function redeem(uint256 _amount) external {
-        require(canRedeem, "You can't redeem this token");
+        if (!canRedeem) {
+            revert CannotRedeem();
+        }
         uint256 totalKei = address(this).balance;
-        uint256 toRedeem = _amount * totalKei / totalSupply();
+        uint256 toRedeem = (_amount * totalKei) / totalSupply();
 
         _burn(msg.sender, _amount);
         payable(msg.sender).transfer(toRedeem);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceId == type(IKIP7Permit).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
