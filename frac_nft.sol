@@ -12,7 +12,8 @@ contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
     error NotForSale();
     error InsufficientFunds();
     error CannotRedeem();
-    
+    error AmountMustBeGreaterThanZero();
+
     bool public initialized;
     bool public forSale;
     bool public canRedeem;
@@ -23,10 +24,14 @@ contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
     
     constructor() KIP7("Chelsea", "CHE") KIP7Permit("Chelsea") {}
 
-
-    function initialize(address _collection, uint256 _tokenId) external onlyOwner {
-        if (!initialized) {
+    function initialize(address _collection, uint256 _tokenId, uint256 _amount) external onlyOwner {
+        if (initialized) {
             revert CollectionAlreadyMinted();
+        }
+        if (_amount > 0) {
+            _mint(msg.sender, _amount);
+        } else {
+            revert AmountMustBeGreaterThanZero();
         }
         collection = IKIP17(_collection);
         collection.safeTransferFrom(msg.sender, address(this), _tokenId);
@@ -38,8 +43,6 @@ contract Chelsea is KIP7, Ownable, KIP7Permit, KIP17Holder {
         salePrice = price;
         forSale = true;
     }
-
-
 
     function purchase() external payable {
         if (!forSale) {
